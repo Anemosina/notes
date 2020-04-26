@@ -1,0 +1,91 @@
+git-scm.org
+
+git config --global user.name "Your Name"
+git config --global user.email "your_email@example.com"
+
+https://github.com/github/gitignore
+(t - search /macos/)
+
+github using ssh
+ls -al ~/.ssh
+
+ssh-keygen -t rsa -b 4096 -C teodora.ahkozidou@gmail.com
+
+on mac  add ssh key to ssh program
+$eval "$(ssh-agent -s)"
+
+add rsa key to ssh
+$ssh-add ~/.ssh/id_rsa
+
+inform git for ssh key
+pbcopy < ~/.ssh/id_rsa.pub
+
+on git > settings add ssh key
+
+verify via terminal 
+ssh -T git@github.com
+
+video
+https://egghead.io/lessons/javascript-how-to-install-git-scm
+
+-------------------------------------------------------------
+Remove File from repository
+
+git rm file.txt
+git commit -m "rmove file file.txt"
+git rm --cached file.txt
+git commit -m "remove file.txt"
+git push origin branch_name
+
+-------------------------------------------------------------
+Basic - when adding a new created file
+
+git add file.txt
+git commit  -m "add a message to the commitment"
+git log - to check 
+git push origin master
+
+-------------------------------------------------------------
+
+Git gc (Git Garbage Collector)
+
+Cleans up and optimizes the local repository by compressing various files
+
+-------------------------------------------------------------
+
+Git Config
+
+Enable and disable colorful output in git commands:
+git config color.ui true/false
+
+Enable Unix-style line endings:
+git config --global core.autocrlf true
+
+Get remote origin repository URL:
+git config --get remote.origin.url
+
+Disable tracking of file attributes changes (e.g. with chmod and chattr):
+git config core.fileMode false
+
+Setup a global gitignore file:
+git config --global core.excludesfile ~/.gitignore_global
+-------------------------------------------------------------
+
+- Git objects can be rewieved with git show.
+Types of git objects (they can be viewed in .git/objects):
+blob(file) - compressed, snapshot of a file
+tree - list of hashes of files and trees
+commit
+	Contains the following:
+	- unique identifier
+	- author and commiter
+	- commit message
+	- time of commit
+	- hash of previous commit
+	- hash of the tree to which it relates to
+	- other metadata
+tag - contains the identifier of a commit
+branch tip - the last commit from the branch
+
+-------------------------------------------------------------
+
