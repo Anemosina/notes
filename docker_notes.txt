@@ -83,7 +83,28 @@ docker volume prune
 -Delete all the volumes
 
 ---------------------------------------------------------
+examples:
 
+docker version
+docker info
+docker images
+docker ps -a - show running containers & exiting containers
+docker pull alpine
+docker run alpine
+docker exec -it container_id /bin/sh
+docker rmi ubuntu14:04
+
+container lifecicle
+
+docker start <container>
+docker stop <container>
+docker rm <container>
+
+docker run -d --name web -p80:8000 nigelpulton - (-d detached  --name conainer to be named __  -p80 (on local, 8000 container_port)
+docker run -it --name temp ubuntu:latest /bin/bash
+
+docker -elf 
+exit from container without shutdown ctr+p ctr+q
 ---------------------------------------------------------
 
 The Docker daemon (dockerd) listens for Docker API requests and manages Docker objects such as images, containers, networks, and volumes. 
