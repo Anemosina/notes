@@ -1,0 +1,323 @@
+What is OpenVPN and how to install it on Ubuntu 18.04/ 20.04
+OpenVPN is an open-source software responsible for handling client-server communications that implement Virtual Private Network techniques to create secure point-to-point or site-to-site connections. It handles encryption and authentication implementing layer 2 or layer 3 connections, uses the industry-standard SSL/TLS for encryption.  The packaging is done with standardized UDP or optional TCP packets.
+
+The three main purposes of VPN security:
+- Confidentiality (Privacy)
+- Reliability 
+- Availability
+
+OpenVPN handles encryption and authentication using the TLS (Transport Layer Security)/SSL (Secure Sockets Layer) cartographic protocol. TLS is built on the earlier SSL specifications developed by Netscape. TLS protocol aims primarily to provide privacy and data integrity. SSL/TLS uses one of the best encryption technologies, called asymmetric encryption, to ensure the identity of the VPN partner. Both encryption partners own two keys each—one public and the other private.
+
+OpenVPN uses the TUN/TAP driver which is an open-source project as well that is included in all modern Linux/Unix distributions, as well as Windows, Solaris, and Mac OS X. The TUN device can be used as a virtual point-to-point interface and the TAP device can be used as a virtual Ethernet adapter.
+
+The Advantages of OpenVPN
+Some of the advantages of using OpenVPN is the following:
+- It is secure: use 256-bit encryption keys and high-end ciphers
+- Provide more control over the connections since it is using TCP and UDP
+- OpenVPN runs on a large number of platforms Windows, MacOS, iOS, Android, Linux, and others
+- Easy to set up and use
+- Have a very active community
+- You can tunnel IPsec over OpenVPN
+
+Pre-requirements of following the example for the installation
+You will need VPS or virtual machine with Ubuntu 18.04/20.04 for the VPN server and one PC for the client.
+
+Before you start installing any package on your Ubuntu server, we always recommend making sure that all system packages are updated: 
+
+root@test:~# apt update
+root@test:~# apt upgrade
+
+Switch the directory (if you are not there): 
+
+root@test:~# cd ~
+
+The next step is to install EasyRSA
+
+root@test:/etc/openvpn/server# cd && wget https://github.com/OpenVPN/easy-rsa/releases/download/v3.0.5/EasyRSA-nix-3.0.5.tgz
+
+When the download is complete extract the archive
+
+root@test:~# tar xzf EasyRSA-nix-3.0.5.tgz
+
+Switch the directory and copy the file
+
+root@test:~# cd ~/EasyRSA-3.0.5/
+root@test:~/EasyRSA-3.0.5# cp vars.example vars
+
+Uncomment and update the following entries to match your information:
+
+root@test:~/EasyRSA-3.0.5# nano ~/EasyRSA-3.0.5/vars
+
+set_var EASYRSA_REQ_COUNTRY     "US"
+set_var EASYRSA_REQ_PROVINCE    "California"
+set_var EASYRSA_REQ_CITY        "San Francisco"
+set_var EASYRSA_REQ_ORG "Copyleft Certificate Co"
+set_var EASYRSA_REQ_EMAIL       "me@example.net"
+set_var EASYRSA_REQ_OU          "My Organizational Unit"
+
+Ctrl+o <Enter> ; Ctrl + x # In order to save and exit from the editor
+
+First, we need to initialize a new PKI:
+
+root@test:~/EasyRSA-3.0.5# ./easyrsa init-pki
+Note: using Easy-RSA configuration from: ./vars
+Using SSL: openssl OpenSSL 1.1.1f  31 Mar 2020
+init-pki complete; you may now create a CA or requests.
+Your newly created PKI dir is: /root/EasyRSA-3.0.5/pki
+
+Now we can create the CA certificate, it will ask you for key phrase and a host name: 
+
+root@test:~/EasyRSA-3.0.5# ./easyrsa build-ca
+
+You will be requested to enter  Passphrase and common name (etc user, client, server):
+Note: using Easy-RSA configuration from: ./vars
+Using SSL: openssl OpenSSL 1.1.1f  31 Mar 2020
+Enter New CA Key Passphrase:
+Re-Enter New CA Key Passphrase:
+Generating RSA private key, 2048 bit long modulus (2 primes)
+...............+++++
+Common Name (eg: your user, host, or server name) [Easy-RSA CA]:test
+Your new CA certificate file for publishing is at:
+/root/EasyRSA-3.0.5/pki/ca.crt
+
+Install OpenVPN
+
+root@test:~/EasyRSA-3.0.5#apt update
+root@test:~/EasyRSA-3.0.5# apt install openvpn
+
+Generate Diffie-Hellman key (The Diffie-Hellman key exchange was one of the most important developments in public-key cryptography) It will take some time to be installed and copy it in the openvpn directory:
+
+root@test:~/EasyRSA-3.0.5# ./easyrsa gen-dh
+root@test:~/EasyRSA-3.0.5# cp ~/EasyRSA-3.0.5/pki/dh.pem /etc/openvpn/
+
+Generate an HMAC (Hash-based message authentication code (HMAC) is a mechanism for calculating a message authentication code involving a hash function in combination with a secret key.) signature: 
+
+root@test:~/EasyRSA-3.0.5# openvpn --genkey --secret ta.key
+root@test:~/EasyRSA-3.0.5# cp ~/EasyRSA-3.0.5/ta.key /etc/openvpn/
+
+Now we should create Server Certificate and Private Key (you will be asked for the passphrase)
+
+root@test:~/EasyRSA-3.0.5# ./easyrsa gen-req test-server nopass
+root@test:~/EasyRSA-3.0.5# cp ~/EasyRSA-3.0.5/pki/private/test-server.key /etc/openvpn/
+root@test:~/EasyRSA-3.0.5# ./easyrsa sign-req server test-server
+root@test:~/EasyRSA-3.0.5# cp ~/EasyRSA-3.0.5/pki/private/test-server.crt /etc/openvpn/
+
+It will display the below output:
+
+Certificate is to be certified until Jul 26 08:32:13 2023 GMT (1080 days)
+
+Write out database with 1 new entries
+Data Base Updated
+
+Certificate created at: /root/EasyRSA-3.0.5/pki/issued/test-server.crt
+
+Move to the directory issued and copy the crt and ca file:
+
+root@test:~/EasyRSA-3.0.5# cd pki/issued/
+root@test:~/EasyRSA-3.0.5/pki/issued# cp test-server.crt /etc/openvpn/
+root@test:~/EasyRSA-3.0.5/pki/issued# cd ..
+root@test:~/EasyRSA-3.0.5/pki# cp ca.crt /etc/openvpn/
+
+Copy the example configuration file:
+
+# sh -c "gunzip -c /usr/share/doc/openvpn/examples/sample-config-files/server.conf.gz > /etc/openvpn/server1.conf"
+
+Open the file with the nano editor:
+
+# nano /etc/openvpn/server1.conf
+
+Uncomment and replace with the correct data for your server the below:
+
+cert test-server.crt #correct the crt file name
+key test-server.key #correct the key file name
+dh dh.pem 
+push "redirect-gateway def1 bypass-dhcp" (remove the ;)
+push "dhcp-option DNS 208.67.222.222" (remove the ;)
+push "dhcp-option DNS 208.67.220.220" (remove the ;)
+user nobody (remove the ;)
+group nogroup (remove the ;)
+
+Add at the bottom of the file  (this will change authentication algorithm (HMAC) from SHA1 to SHA256 )
+
+auth SHA256 
+
+
+Now you need to enable the OpenVPN server, start it, and to be sure it is running to check the status.
+
+root@test:~/EasyRSA-3.0.5# systemctl enable openvpn
+root@test:~/EasyRSA-3.0.5# systemctl start openvpn
+root@test:~/EasyRSA-3.0.5# systemctl status openvpn
+â— openvpn.service - OpenVPN service
+     Loaded: loaded (/lib/systemd/system/openvpn.service; enabled; vendor preset: enabled)
+     Active: active (exited) since Thu 2020-08-06 17:15:34 EEST; 7s ago
+    Process: 48692 ExecStart=/bin/true (code=exited, status=0/SUCCESS)
+   Main PID: 48692 (code=exited, status=0/SUCCESS)
+Aug 06 17:15:34 test systemd[1]: Starting OpenVPN service...
+Aug 06 17:15:34 test systemd[1]: Finished OpenVPN service.
+
+Now we need to change the route and to open the firewall ports:
+You can see the current configuration with: 
+
+# ip a show tun0
+
+We need to edit the file sysctl.conf
+
+root@test:~# nano /etc/sysctl.conf
+
+Uncomment this line to save the file and exit. After this apply the changes.
+
+net.ipv4.ip_forward=1
+
+root@test:~# sysctl -p
+
+Check the interface: 
+
+root@test:~# ip -o -4 route show to default | awk '{print $5}'
+eth0
+
+Edit this file by changing the default policy to “ACCEPT” – save the file and exit
+
+root@test:~# nano /etc/default/ufw
+
+DEFAULT_FORWARD_POLICY="ACCEPT" 
+
+Edit the file before rules:
+
+root@test:~# nano /etc/ufw/before.rules
+
+Add at the bottom of the file:
+
+#NAT table rules
+*nat
+:POSTROUTING ACCEPT [0:0]
+
+# Forward traffic through eth0 (in my case the interface adapter is eth0 you should replace it with yours)
+-A POSTROUTING -s 10.8.0.0/16 -o eth0 -j MASQUERADE
+
+# don't delete the 'COMMIT' line or these rules won't be processed
+COMMIT
+
+Now we need to open the port for the VPN and to allow OpenSSH:
+
+root@test:~# ufw allow 1194/udp
+root@test:~# ufw allow OpenSSH
+root@test:~# ufw disable
+root@test:~# ufw enable
+Command may disrupt existing ssh connections. Proceed with operation (y|n)? yes
+Firewall is active and enabled on system startup
+root@test:~# iptables -nvL POSTROUTING -t nat
+Chain POSTROUTING (policy ACCEPT 9 packets, 670 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+ 1190  135K MASQUERADE  all  --  *      eth0    10.8.0.0/16          0.0.0.0/0
+
+Create OpenVPN directory for the clients files
+Create the directories:
+
+root@test:~# mkdir -p ~/openvpn-clients/{configs,base,files}
+
+Copy the ta.key and ca.crt files:
+
+root@test:~# cp ~/EasyRSA-3.0.5/ta.key ~/openvpn-clients/base/
+root@test:~# cp /etc/openvpn/ca.crt ~/openvpn-clients/base/
+
+Copy the client example configuration on the base directory and edit it:
+
+root@test:~# cp /usr/share/doc/openvpn/examples/sample-config-files/client.conf ~/openvpn-clients/base/
+root@test:~# nano ~/openvpn-clients/base/client.conf
+
+#Replace  YOUR_SERVER_IP with your server IP
+
+remote YOUR_SERVER_IP 1194
+
+#Comment the below lines:
+ca ca.crt
+cert client.crt
+key client.key
+
+Add on the end of the file:
+
+auth SHA256
+
+Save the file and exit.
+
+Creating the first client certificate
+Switch to EasyRSA directory and generate the client/user key file and copy it to the openvpn-clinets/files
+
+root@test:~# cd ~/EasyRSA-3.0.5/
+root@test:~/EasyRSA-3.0.5# ./easyrsa gen-req client1 nopass
+root@test:~/EasyRSA-3.0.5# cp ~/EasyRSA-3.0.5/pki/private/client1.key ~/openvpn-clients/files/
+
+Generate the crt file and copy it to the openvpn-clinets/files
+
+root@test:~/EasyRSA-3.0.5# ./easyrsa sign-req client client1
+root@test:~/EasyRSA-3.0.5# cp ~/EasyRSA-3.0.5/pki/issued/client1.crt ~/openvpn-clients/files/
+You can now create a user ovpn file with a script. 
+Switch the directory to /root/openvpn-clients/ and create a file therewith nano editor
+
+cd /root/openvpn-clients/
+nano ~/openvpn-clients/gen_config.sh
+
+Insert the below lines:
+
+#!/bin/bash
+
+FILES_DIR=$HOME/openvpn-clients/files
+BASE_DIR=$HOME/openvpn-clients/base
+CONFIGS_DIR=$HOME/openvpn-clients/configs
+
+BASE_CONF=${BASE_DIR}/client.conf
+CA_FILE=${BASE_DIR}/ca.crt
+TA_FILE=${BASE_DIR}/ta.key
+
+CLIENT_CERT=${FILES_DIR}/${1}.crt
+CLIENT_KEY=${FILES_DIR}/${1}.key
+
+# Test for files
+for i in "$BASE_CONF" "$CA_FILE" "$TA_FILE" "$CLIENT_CERT" "$CLIENT_KEY"; do
+    if [[ ! -f $i ]]; then
+        echo " The file $i does not exist"
+        exit 1
+    fi
+
+    if [[ ! -r $i ]]; then
+        echo " The file $i is not readable."
+        exit 1
+    fi
+done
+
+# Generate client config
+cat > ${CONFIGS_DIR}/${1}.ovpn <<EOF
+$(cat ${BASE_CONF})
+<key>
+$(cat ${CLIENT_KEY})
+</key>
+<cert>
+$(cat ${CLIENT_CERT})
+</cert>
+<ca>
+$(cat ${CA_FILE})
+</ca>
+<tls-auth>
+$(cat ${TA_FILE})
+</tls-auth>
+EOF
+
+* the script is taken from here!
+https://linuxize.com/post/how-to-set-up-an-openvpn-server-on-ubuntu-18-04/
+
+make the file executable: 
+
+root@test:~/openvpn-clients# chmod u+x ~/openvpn-clients/gen_config.sh
+
+Generate the ovpn file:
+
+root@test:~/openvpn-clients/configs# ./gen_config.sh client1
+
+The file is located in ~/openvpn-clients/configs and you can list the directory:
+
+root@test:~/openvpn-clients/configs# ll ~/openvpn-clients/configs
+
+Cat the file and copy the text to the client/ user machine, save it with extension ovpn:
+
+root@test:~/openvpn-clients/configs# cat client1.ovpn
+
